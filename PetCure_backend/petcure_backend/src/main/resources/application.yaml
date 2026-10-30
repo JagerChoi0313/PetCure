@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: petcure_backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/britney?serverTimezone=UTC
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    hikari:
+      connection-init-sql: "SET time_zone = ‘+00:00’"
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
