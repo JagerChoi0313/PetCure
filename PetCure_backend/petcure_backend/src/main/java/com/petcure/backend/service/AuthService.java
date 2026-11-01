@@ -25,7 +25,7 @@ public class AuthService {
         String email = request.getEmail();
 
         //检查用户名是否重复
-        
+        //今天复习概率论去了，傻逼概率论，老子昨晚才知道周一要考试
     }
 
 
