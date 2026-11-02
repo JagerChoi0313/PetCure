@@ -2,6 +2,15 @@ package com.petcure.backend.duo.auth;
 //duo用于存放接口传输的数据对象,auth表示认证相关功能
 //RegisterRequest专门接收前端注册时提交的用户名、密码、确认密码、手机号和邮箱，并且检查数据是否符合要求
 
+//这是项目中的一个类，接收前端传过来的注册信息
+//为什么需要这个，因为前端注册时会发过来一些数据
+//如:{
+//    "username": "tom123",
+//    "password": "123456",
+//    "phone": "13800000000",
+//    "email": "tom@qq.com"
+//}
+//Spring Boot会把这些JSON数据转换成一个Java对象，这个Java对象就是RegisterRequest
 
 import jakarta.validation.constraints.*;
 import lombok.Getter;
