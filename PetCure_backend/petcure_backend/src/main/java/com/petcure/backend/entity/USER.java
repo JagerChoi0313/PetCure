@@ -44,7 +44,7 @@ public class USER {
     private String bio;
 
     //手机号
-    private Integer phone;
+    private String phone;
 
     //邮箱
     private String email;
