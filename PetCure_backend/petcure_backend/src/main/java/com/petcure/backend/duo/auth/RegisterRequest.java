@@ -27,8 +27,14 @@ public class RegisterRequest {
     @NotBlank(message = "用户名不能为空")
     @Size(min = 4,max = 50,message="用户名长度必须为4到50位")
     @Pattern(
-            regexp = "^[a-zA-Z0-9_]+$]",
+            regexp = "^[a-zA-Z0-9_]+$",
             message = "用户名只能包含字母、数字和下划线"
+            //它的含义是：
+            //- a-zA-Z：允许英文字母。
+            //- 0-9：允许数字。
+            //- _：允许下划线。
+            //- +：允许前面的字符连续出现一次或多次。
+            //- ^、`$`：要求整个用户名都符合规则。
     )
     private String username;
 
@@ -44,7 +50,7 @@ public class RegisterRequest {
             regexp = "^\\+[1-9][0-9]{6,14}$",
             message = "手机号格式不正确，请填写国家区号，例如 +8613800138000"
     )
-    private String Phone;
+    private String phone;
 
     @Email(message = "邮箱格式不正确")
     @Size(max = 254, message="邮箱长度不能超过254个字符")
@@ -52,12 +58,12 @@ public class RegisterRequest {
 
     //清理用户名首尾空白
     public void setUsername(String username){
-        this.username = normalize(email);
+        this.username = normalize(username);
     }
 
     //未填写的手机号统一转换为null
     public void setPhone(String phone){
-        this.email = normalize(email);
+        this.phone = normalize(phone);
     }
 
     //未填写的邮箱统一转换为null
