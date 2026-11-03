@@ -14,3 +14,10 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+
+app:
+  jwt:
+    secret-base64: ${JWT_SECRET}
+    issuer: petcure-backend
+    audience: petcure-api
+    access-token-ttl-seconds: 1800
