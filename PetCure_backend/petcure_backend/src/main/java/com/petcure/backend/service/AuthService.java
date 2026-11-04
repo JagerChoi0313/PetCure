@@ -67,7 +67,7 @@ public class AuthService {//身份认证业务服务类
         //2.用户不存在，或者密码不正确，都返回相同提示
         if(user == null || !passwordEncoder.matches(
                 request.getPassword(),
-                request.getPasswordHash()
+                user.getPassword_hash()
         )){
             throw new BusinessException(
                     HttpStatus.UNAUTHORIZED,
