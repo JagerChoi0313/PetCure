@@ -1,6 +1,8 @@
 package com.petcure.backend.controller;
 
 import com.petcure.backend.common.ApiResponse;
+import com.petcure.backend.duo.auth.LoginRequest;
+import com.petcure.backend.duo.auth.LoginResponse;
 import com.petcure.backend.duo.auth.RegisterRequest;
 import com.petcure.backend.service.AuthService;
 import jakarta.validation.Valid;
@@ -34,4 +36,18 @@ public class AuthController {
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success());
     }
+
+    @PostMapping("/login")
+    public ApiResponse<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request
+            ){
+                LoginResponse response = authService.login(request);
+                return ApiResponse.success(response);
+                //类上已有@RequestMapping("/api/auth")，方法上新增@PostMapping("/login")
+                //两者组合后POST http://localhost:8080/api/auth/login
+                //这里的 @RequestBody 把请求中的 JSON 转成 LoginRequest；`@Valid` 检查用户名、密码等字段；
+                //`authService.login(request)` 执行登录业务；最后通过 ApiResponse.success(...) 返回结果。
+                //登录成功时，HTTP 状态默认是 200。
+    }
+
 }
