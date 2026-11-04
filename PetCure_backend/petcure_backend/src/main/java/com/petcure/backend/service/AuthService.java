@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 //比如我们想查询：select * From user WHERE username = 'tom123';
 //可以使用代码new LambdaQueryWrapper<USER>()  .eq(USER::getUsername,"tom123")
 //因此我们不需要自己写完整的SQL，就可以通过Java代码构建查询条件
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.petcure.backend.duo.auth.LoginRequest;
+import com.petcure.backend.duo.auth.LoginResponse;
 import com.petcure.backend.duo.auth.RegisterRequest;
 //这是项目中的一个类，接收前端传过来的注册信息
 //为什么需要这个，因为前端注册时会发过来一些数据
@@ -29,7 +32,11 @@ import org.springframework.http.HttpStatus;//这是Spring提供的HTTP状态码�
 import org.springframework.security.crypto.password.PasswordEncoder;//这是Spring提供的密码处理接口
 //它主要负责对密码进行哈希处理，验证用户输入的密码是否正确
 //例如passwordEncoder.encode("123456");将原始密码处理成哈希值。
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 
 //这个注解用于标记业务层组件，意味着Spring自动管理这个类，并且可以把它注入到其他需要使用它的类中
@@ -37,13 +44,58 @@ import org.springframework.stereotype.Service;
 public class AuthService {//身份认证业务服务类
     private final USERMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;//让AuthService接收JwtService
 
     public AuthService(
                 USERMapper userMapper,
-                PasswordEncoder passwordEncoder
+                PasswordEncoder passwordEncoder,
+                JwtService jwtService
     ){
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
+        this.jwtService=jwtService;
+    }
+
+    public LoginResponse login(LoginRequest request){
+
+        //1.根据用户名查询用户
+        USER user = userMapper.selectOne(
+                new LambdaQueryWrapper<USER>()
+                        .eq(USER::getUsername,request.getUsername())
+        );
+
+        //2.用户不存在，或者密码不正确，都返回相同提示
+        if(user == null || !passwordEncoder.matches(
+                request.getPassword(),
+                request.getPasswordHash()
+        )){
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "INVALID_CREDENTIALS",
+                    "用户名或密码错误"
+            );
+        }
+
+        //3.身份验证通过，生成JWT
+        Jwt jwt = jwtService.createAccessToken(user.getId());
+
+        //4.更新最后登录时间，使用UTC与数据库时间保持一致
+        userMapper.update(
+                null,
+                new LambdaUpdateWrapper<USER>()
+                        .eq(USER::getId,user.getId())
+                        .set(
+                                USER::getLast_login_at,
+                                LocalDateTime.now(ZoneOffset.UTC)
+                        )
+        );
+
+        //返回登录结果
+        return new LoginResponse(
+                jwt.getTokenValue(),
+                "Bearer",
+                jwt.getExpiresAt()
+        );
     }
 
     public void register(RegisterRequest request){
