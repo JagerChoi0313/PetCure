@@ -30,6 +30,10 @@ public class LoginRequest {
         this.username = username.strip();//清理用户名首尾空白
     }
 
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     //与注册时使用的BCrypt密码长度限制保持一致
     @AssertTrue(message = "密码UTF-8编码后的长度不能超过72字节")
     public boolean isPasswordWithinByteLimit(){
