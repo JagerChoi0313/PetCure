@@ -48,20 +48,24 @@ public class AuthService {//身份认证业务服务类
     private final USERMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;//让AuthService接收JwtService
+    private final JwtRevocationMapper jwtRevocationMapper;
 
     public AuthService(
                 USERMapper userMapper,
                 PasswordEncoder passwordEncoder,
-                JwtService jwtService
+                JwtService jwtService,
+                JwtRevocationMapper jwtRevocationMapper
     ){
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
         this.jwtService=jwtService;
+        this.jwtRevocationMapper = jwtRevocationMapper;
     }
 
     public void logout(Jwt jwt){
         Object issuer = jwt.getClaims().get(JwtClaimNames.ISS);
         String jti = jwt.getId();
+
 
         if(issuer == null || jti == null || jti.isBlank()
                 || jwt.getExpiresAt()==null){
@@ -77,7 +81,7 @@ public class AuthService {//身份认证业务服务类
                 ZoneOffset.UTC
         );
 
-        JwtRevocationMapper.insertRevocation(issuer.toString(),jti,expiresAt);
+        jwtRevocationMapper.insertRevocation(issuer.toString(),jti,expiresAt);
     }
 
 
