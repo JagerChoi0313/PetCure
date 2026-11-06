@@ -8,6 +8,8 @@ import com.petcure.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,4 +52,11 @@ public class AuthController {
                 //登录成功时，HTTP 状态默认是 200。
     }
 
+
+    //在现有的AuthController中增加接口
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@AuthenticationPrincipal Jwt jwt){
+        authService.logout(jwt);
+        return ApiResponse.success();
+    }
 }
