@@ -24,6 +24,7 @@ import com.petcure.backend.entity.USER;
 import com.petcure.backend.exception.BusinessException;
 //业务异常类，作用是当用户违反业务规则时，主动抛出异常，例如用户名已经存在，手机号已经被使用
 //为什么不使用Java自带的异常，因为我们希望自己控制返回给前端的信息
+import com.petcure.backend.mapper.JwtRevocationMapper;
 import com.petcure.backend.mapper.USERMapper;
 //这是MyBatis-plus对应的数据库操作接口
 //USER：描述用户数据，USERMapper:负责操作数据库中的用户数据
@@ -33,10 +34,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;//这是Spri
 //它主要负责对密码进行哈希处理，验证用户输入的密码是否正确
 //例如passwordEncoder.encode("123456");将原始密码处理成哈希值。
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
 
 
 //这个注解用于标记业务层组件，意味着Spring自动管理这个类，并且可以把它注入到其他需要使用它的类中
@@ -55,6 +58,29 @@ public class AuthService {//身份认证业务服务类
         this.userMapper = userMapper;
         this.jwtService=jwtService;
     }
+
+    public void logout(Jwt jwt){
+        Object issuer = jwt.getClaims().get(JwtClaimNames.ISS);
+        String jti = jwt.getId();
+
+        if(issuer == null || jti == null || jti.isBlank()
+                || jwt.getExpiresAt()==null){
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "UNAUTHORIZED",
+                    "令牌缺少必要信息，请重新登录"
+            );
+        }
+
+        LocalDateTime expiresAt = LocalDateTime.ofInstant(
+                jwt.getExpiresAt(),
+                ZoneOffset.UTC
+        );
+
+        JwtRevocationMapper.insertRevocation(issuer.toString(),jti,expiresAt);
+    }
+
+
 
     public LoginResponse login(LoginRequest request){
 
