@@ -15,6 +15,7 @@ package com.petcure.backend.mapper;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;//Mapper是一个Mybatis数据库映射接口
 import org.apache.ibatis.annotations.Param;//给SQL参数起名字
+import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
 
@@ -37,11 +38,25 @@ public interface JwtRevocationMapper {//这里定义的是接口，不是普通�
                  revoked_at = jwt_revocation.revoked_at
             """)
 
+    //增加查询方法
+    @Select("""
+            SELECT COUNT(*)
+            FROM jwt_revocation
+            WHERE issuer = #{issuer} AND jti = #{jti}
+            """)
+    //这条查询使用退出时写入的同一组值。返回 0 表示没有撤销记录，返回 1 表示这枚令牌已经撤销。
+
+
     void insertRevocation(
             @Param("issuer") String issuer, //把Java参数与SQL参数对应起来，例如@Param("issuer") String issuer对应#{issuer}
             @Param("jti")String jti,
             @Param("expiresAt")LocalDateTime expiresAt
             );
+
+    int countRevocation(
+            @Param("issuer")String issuer,
+            @Param("jti") String jti
+    );
 }
 
 //#{jti} 会绑定到 @Param("jti") 对应的参数。
