@@ -1,0 +1,15 @@
+$kind: http-request
+name: http://localhost:8080/api/users/me
+description: ""
+url: http://localhost:8080/api/users/me
+method: GET
+body:
+  type: json
+  content: "{\r
+
+    \    \"username\": \"petcure_test01\",\r
+
+    \    \"password\": \"12345678\"\r
+
+    }"
+order: 1000
