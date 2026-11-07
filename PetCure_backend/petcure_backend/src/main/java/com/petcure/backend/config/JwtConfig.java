@@ -1,11 +1,15 @@
 package com.petcure.backend.config;
 //这段JwtConfig的作用是告诉Spring Security：使用什么密钥签发JWT，以及收到JWT后按照什么规则验证它
 
+import com.nimbusds.jwt.JWTClaimNames;
+import com.petcure.backend.mapper.JwtRevocationMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 
@@ -59,7 +63,8 @@ public class JwtConfig {
     public JwtDecoder jwtDecoder(
             SecretKey jwtSecretKey,
             @org.springframework.beans.factory.annotation.Value("${app.jwt.issuer}") String issuer,
-            @Value("${app.jwt.audience}") String audience
+            @Value("${app.jwt.audience}") String audience,
+            JwtRevocationMapper jwtRevocationMapper
     ){
         //构建解码器，这一步告诉Spring Security，使用HS256算法和同一个密钥来验证Token的签名
         NimbusJwtDecoder decoder = NimbusJwtDecoder
@@ -84,13 +89,38 @@ public class JwtConfig {
                         Objects::nonNull  //检查 JWT 的 exp 字段是否存在且不为 null。
                 );
 
-        decoder.setJwtValidator(//组合所有校验器
+        OAuth2TokenValidator<Jwt>existingValidators =
                 new DelegatingOAuth2TokenValidator<>(
-                        defaultValidator,
-                        audienceValidator,
-                        expirationRequired
-                )
-        );
+
+                            defaultValidator,
+                            audienceValidator,
+                            expirationRequired
+                );
+
+        decoder.setJwtValidator(jwt->{
+            OAuth2TokenValidatorResult result = existingValidators.validate(jwt);
+            if(result.hasErrors()){
+                return result;
+            }
+
+            String jti = jwt.getId();
+            if (jti==null || jti.isBlank()){
+                return OAuth2TokenValidatorResult.failure(
+                        new OAuth2Error("invalid_token","JWT缺少令牌编号",null)
+                );
+            }
+
+            String tokenIssuer = jwt.getClaims().get(JwtClaimNames.ISS).toString();
+            if (jwtRevocationMapper.countRevocation(tokenIssuer,jti)>0){
+                return OAuth2TokenValidatorResult.failure(
+                  new OAuth2Error("Invalid_token","JWT已撤销",null)
+                );
+            }
+
+            return OAuth2TokenValidatorResult.success();
+        });
+
+
         return decoder;
     }
 }
