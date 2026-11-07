@@ -24,19 +24,16 @@ public interface JwtRevocationMapper {//这里定义的是接口，不是普通�
 
     //@Insert 注解（最重要的部分）
     @Insert("""                 
-            INSERT INTO jwt_revocation
-                (issuer, 
-                 jti, 
-                 expires_at, 
-                 revoked_at)
-            VALUES 
-                (#{issuer},
-                #{jti},
-                #{expiresAt},
-                UTC_TIMESTAMP())
-            ON DUPLICATE KEY UPDATE 
-                 revoked_at = jwt_revocation.revoked_at
+            INSERT INTO jwt_revocation (issuer, jti, expires_at, revoked_at)
+            VALUES (#{issuer}, #{jti}, #{expiresAt}, UTC_TIMESTAMP())
+            ON DUPLICATE KEY UPDATE revoked_at = jwt_revocation.revoked_at
             """)
+
+    void insertRevocation(
+            @Param("issuer") String issuer, //把Java参数与SQL参数对应起来，例如@Param("issuer") String issuer对应#{issuer}
+            @Param("jti")String jti,
+            @Param("expiresAt")LocalDateTime expiresAt
+    );
 
     //增加查询方法
     @Select("""
@@ -46,12 +43,6 @@ public interface JwtRevocationMapper {//这里定义的是接口，不是普通�
             """)
     //这条查询使用退出时写入的同一组值。返回 0 表示没有撤销记录，返回 1 表示这枚令牌已经撤销。
 
-
-    void insertRevocation(
-            @Param("issuer") String issuer, //把Java参数与SQL参数对应起来，例如@Param("issuer") String issuer对应#{issuer}
-            @Param("jti")String jti,
-            @Param("expiresAt")LocalDateTime expiresAt
-            );
 
     int countRevocation(
             @Param("issuer")String issuer,
