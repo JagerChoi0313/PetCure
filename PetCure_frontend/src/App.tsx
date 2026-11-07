@@ -1,122 +1,85 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+//App.tsx是应用的主组件，负责组织和展示页面内容。main.tsx是程序的入口，负责启动React应用
+import {useState,type FormEvent} from 'react'
+//useState:保存用户输入
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App(){
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  const [username,setUsername] = useState('')
+  const [password,setPassword] = useState('')
+  const [message,setMessage] = useState('')
+  const [submitting,setSubmitting] = useState(false)
 
-      <div className="ticks"></div>
+  async function handleSubmit(event:FormEvent<HTMLFormElement>){    
+    event.preventDefault()    //点击登录后‘handleSubmit’里的event.preventDefault()会阻止浏览器按照默认方式提交表单刷新页面
+                              //下一步就在这个函数里把username和password组装成JSON，发给POST/api/auth/login
+    setMessage('')
+    setSubmitting(true)
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+    try{
+      const response = await fetch('/api/auth/login',{
+        method: 'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({username,password})
+      })
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      const result = await response.json().catch(()=>null)//如果前面发生错误就返回null
+
+      if(!response.ok || result?.code!== 'SUCCESS'){
+        setMessage(result?.message || `登录失败(HTTP${response.status})`)
+        return
+      }
+
+      const token=result.data?.accessToken
+      if(typeof token!=='string'||!token){
+        setMessage('登录响应缺少访问令牌')
+        return
+      }
+
+      sessionStorage.setItem('petcure.accessToken',token)
+      setPassword('')
+      setMessage('登录成功')
+    }catch{
+      setMessage('登录请求失败，请检查前端和后端是否正在运行')
+    }finally{
+      setSubmitting(false)
+    }
+  }                           
+
+  return(
+    <main>
+      <h1>PetCure 登录</h1>
+
+      <form onSubmit={handleSubmit}>
+        <p>
+          <label htmlFor="username">用户名</label>
+          <br />
+          <input
+            id="username"
+            autoComplete="username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}   //onChange:在每次输入时更新对应的值
+            required
+          />
+        </p>
+
+        <p>
+          <label htmlFor="password">密码</label>
+          <br />
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+        </p>
+
+         <button type="submit" disabled={submitting}>
+          {submitting ? '登录中…' : '登录'}
+          </button>
+        <p role="status">{message}</p>
+      </form>
+    </main>
   )
 }
-
-export default App
