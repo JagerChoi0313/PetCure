@@ -52,3 +52,5 @@ public interface JwtRevocationMapper {//这里定义的是接口，不是普通�
 
 //#{jti} 会绑定到 @Param("jti") 对应的参数。
 // `UTC_TIMESTAMP()` 由数据库生成撤销时间。唯一主键和这条 SQL 一起处理重复写入。
+
+//gap一天迎接macbook的到来
