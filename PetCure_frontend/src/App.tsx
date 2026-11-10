@@ -2,6 +2,8 @@
 import {useState,type FormEvent} from 'react'
 //useState:保存用户输入
 
+import {useEffect} from 'react'
+
 export default function App(){
 
   const [username,setUsername] = useState('')
@@ -11,6 +13,55 @@ export default function App(){
   const [displayName, setDisplayName] = useState<string | null>(null)
 
  
+  const [restoring, setRestoring] = useState(
+  () => Boolean(sessionStorage.getItem('petcure.accessToken')),
+)
+
+  useEffect(()=>{
+
+    const token = sessionStorage.getItem('petcure.accessToken')
+    if(!token) return
+    
+    const controller = new AbortController()
+
+    async function restoreSession(){
+      try{
+        const response = await fetch('/api/users/me',{
+          headers:{Authorization: `Bearer ${token}`},
+          signal:controller.signal,
+        })
+
+        if (response.status ===  401){
+          sessionStorage.removeItem('petcure.accessToken')
+          setMessage('登录状态已失效，请重新登录')
+          return
+        }
+
+        const result = await response.json().catch(()=>null)
+
+        if (controller.signal.aborted) return
+
+        if (!response.ok || result?.code !== 'SUCCESS' || !result.data) {
+        setMessage('暂时无法恢复登录状态，请刷新重试')
+        return
+      }
+        setDisplayName(result.data.nickname || result.data.username)
+      }catch{
+         if (!controller.signal.aborted) {
+        setMessage('暂时无法连接后端，请刷新重试')
+      }
+      }finally{
+         if (!controller.signal.aborted) {
+         setRestoring(false)
+      }
+      }
+    }
+
+  void restoreSession()
+
+  return () => controller.abort()
+  }, [])
+
 
   async function handleSubmit(event:FormEvent<HTMLFormElement>){    
     event.preventDefault()    //点击登录后‘handleSubmit’里的event.preventDefault()会阻止浏览器按照默认方式提交表单刷新页面
@@ -97,6 +148,15 @@ export default function App(){
      setSubmitting(false)
    }
   }
+
+  if (restoring) {
+  return (
+    <main>
+      <h1>PetCure</h1>
+      <p role="status">正在检查登录状态…</p>
+    </main>
+  )
+}
 
   if (displayName !== null) {
   return (
