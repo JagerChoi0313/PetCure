@@ -8,12 +8,16 @@ export default function App(){
   const [password,setPassword] = useState('')
   const [message,setMessage] = useState('')
   const [submitting,setSubmitting] = useState(false)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+
+ 
 
   async function handleSubmit(event:FormEvent<HTMLFormElement>){    
     event.preventDefault()    //点击登录后‘handleSubmit’里的event.preventDefault()会阻止浏览器按照默认方式提交表单刷新页面
                               //下一步就在这个函数里把username和password组装成JSON，发给POST/api/auth/login
     setMessage('')
     setSubmitting(true)
+    
 
     try{
       const response = await fetch('/api/auth/login',{
@@ -37,14 +41,75 @@ export default function App(){
 
       sessionStorage.setItem('petcure.accessToken',token)
       setPassword('')
-      setMessage('登录成功')
+      const meResponse = await fetch(`/api/users/me`,{
+        headers:{Authorization:`Bearer ${token}`},
+
+      })
+
+      if (meResponse.status == 401){
+        sessionStorage.removeItem(`petcure.accessToken`)
+        setMessage('登录状态已失效，请重新登录')
+        return
+      }
+
+      const me = await meResponse.json().catch(() => null)
+
+      if(!meResponse.ok || me?.code != 'SUCCESS'||!me.data){
+        setMessage('登录成功，但我读取用户资料失败')
+        return
+      }
+
+      setDisplayName(me.data.nickname || me.data.username)
     }catch{
       setMessage('登录请求失败，请检查前端和后端是否正在运行')
     }finally{
       setSubmitting(false)
     }
-  }                           
+  }                        
+  
 
+
+
+   async function handleLogout(){
+   const token = sessionStorage.getItem('petcure.accessToken')
+   setMessage('')
+   setSubmitting(true)
+
+   try{
+    if(token){
+      const response = await fetch('/api/auth/logout',{
+        method:'POST',
+        headers:{Authorization:`Bearer ${token}`}
+      })
+
+      if(!response.ok && response.status!==401){
+        setMessage(`退出失败(HTTP${response.status})，请重试`)
+        return
+      }
+    }
+
+    sessionStorage.removeItem(`petcure.accessToken`)
+    setDisplayName(null)
+    setMessage('已退出登录')
+   }catch{
+     setMessage('暂时无法连接后端，请重试退出')
+   }finally{
+     setSubmitting(false)
+   }
+  }
+
+  if (displayName !== null) {
+  return (
+    <main>
+      <h1>PetCure</h1>
+      <p>欢迎，{displayName}</p>
+      <button type="button" onClick={handleLogout} disabled={submitting}>
+        {submitting ? '退出中…' : '退出登录'}
+      </button>
+      <p role="status">{message}</p>
+    </main>
+  )
+}
   return(
     <main>
       <h1>PetCure 登录</h1>
