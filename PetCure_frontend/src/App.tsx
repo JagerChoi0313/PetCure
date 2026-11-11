@@ -1,3 +1,4 @@
+import AuthLayout from './AuthLayout'
 import { useEffect, useState, type FormEvent } from 'react'
 import RegisterForm from './RegisterForm'
 import {
@@ -169,8 +170,9 @@ export default function App() {
   }
 
   return (
-    <main>
-      <h1>PetCure 登录</h1>
+    <AuthLayout>
+      <h1>欢迎回来</h1>
+      <p className="auth-subtitle">记录日常，陪伴每一次成长</p>
 
       <form onSubmit={handleLogin}>
         <fieldset disabled={submitting}>
@@ -178,8 +180,9 @@ export default function App() {
 
           <p>
             <label>
-              用户名<br />
+              账号<br />
               <input
+                placeholder="请输入账号"
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
@@ -193,6 +196,7 @@ export default function App() {
             <label>
               密码<br />
               <input
+                placeholder="请输入密码"
                 type="password"
                 autoComplete="current-password"
                 value={password}
@@ -203,22 +207,23 @@ export default function App() {
             </label>
           </p>
 
-          <button type="submit">
+          <button className="auth-submit" type="submit">
             {submitting ? '登录中…' : '登录'}
           </button>
-          <button
+          <p className="auth-switch">还没有账号？<button
+            className="auth-link"
             type="button"
             onClick={() => {
               setMessage('')
               setShowRegister(true)
             }}
           >
-            去注册
-          </button>
+            立即注册
+          </button></p>
         </fieldset>
       </form>
 
       <p role="status">{message}</p>
-    </main>
+    </AuthLayout>
   )
 }

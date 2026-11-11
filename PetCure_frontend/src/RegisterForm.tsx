@@ -233,6 +233,7 @@
 // // - 第二次调用，T 是 number。
 
 
+import AuthLayout from './AuthLayout'
 import { useState, type FormEvent } from 'react'
 import { getErrorMessage, registerUser } from './api'
 
@@ -290,8 +291,9 @@ export default function RegisterForm({ onRegistered, onBack }: Props) {
   }
 
   return (
-    <main>
-      <h1>PetCure 注册</h1>
+    <AuthLayout>
+      <h1>加入 PetCure</h1>
+      <p className="auth-subtitle">从今天开始，记录它的小日常</p>
 
       <form onSubmit={handleSubmit}>
         <fieldset disabled={submitting}>
@@ -299,8 +301,9 @@ export default function RegisterForm({ onRegistered, onBack }: Props) {
 
           <p>
             <label>
-              用户名<br />
+              账号<br />
               <input
+                placeholder="4–50 位字母、数字或下划线"
                 name="username"
                 autoComplete="username"
                 minLength={4}
@@ -316,6 +319,7 @@ export default function RegisterForm({ onRegistered, onBack }: Props) {
             <label>
               密码<br />
               <input
+                placeholder="请输入至少 8 位密码"
                 name="password"
                 type="password"
                 autoComplete="new-password"
@@ -330,6 +334,7 @@ export default function RegisterForm({ onRegistered, onBack }: Props) {
             <label>
               确认密码<br />
               <input
+                placeholder="请再次输入密码"
                 name="confirmPassword"
                 type="password"
                 autoComplete="new-password"
@@ -357,6 +362,7 @@ export default function RegisterForm({ onRegistered, onBack }: Props) {
             <label>
               邮箱<br />
               <input
+                placeholder="请输入邮箱"
                 name="email"
                 type="email"
                 autoComplete="email"
@@ -365,15 +371,15 @@ export default function RegisterForm({ onRegistered, onBack }: Props) {
             </label>
           </p>
 
-          <p>手机号和邮箱至少填写一项。</p>
-          <button type="submit">
+          <p className="auth-hint">手机号和邮箱至少填写一项。</p>
+          <button className="auth-submit" type="submit">
             {submitting ? '注册中…' : '注册'}
           </button>
-          <button type="button" onClick={onBack}>返回登录</button>
+          <p className="auth-switch">已有账号？<button className="auth-link" type="button" onClick={onBack}>去登录</button></p>
         </fieldset>
       </form>
 
       <p role="status">{message}</p>
-    </main>
+    </AuthLayout>
   )
 }
