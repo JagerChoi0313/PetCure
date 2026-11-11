@@ -1,12 +1,15 @@
 package com.petcure.backend.service;
 
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.petcure.backend.duo.user.UpdateUserProfileRequest;
 import com.petcure.backend.duo.user.UserProfileResponse;
 import com.petcure.backend.entity.USER;
 import com.petcure.backend.exception.BusinessException;
 import com.petcure.backend.mapper.USERMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -62,5 +65,19 @@ public class UserService {
                 user.getCreated_at(),
                 user.getLast_login_at()
         );
+    }
+
+    @Transactional
+    public UserProfileResponse updateCurrentUser(
+        Long userId,
+        UpdateUserProfileRequest request
+    ){
+        //1.根据当前登录用户ID，只更新允许修改的资料字段
+        int updateedRows = userMapper.update(
+                null,
+                new LambdaUpdateWrapper<USER>()
+                        .eq(USER::getId,userId)
+                        .set(USER::getNickname,request.getNickname())
+        )
     }
 }

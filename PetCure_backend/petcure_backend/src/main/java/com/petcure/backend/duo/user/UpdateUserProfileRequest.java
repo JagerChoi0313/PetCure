@@ -16,7 +16,7 @@ public class UpdateUserProfileRequest {
     private String nickname;
 
     @NotNull(message = "性别不能为空，未填写请选择0")
-    @Min(value = 2,message = "性别只能为0、1、2")
+    @Min(value = 0,message = "性别只能为0、1、2")
     @Max(value = 2,message = "性别只能为0，1，2")
     private Integer gender;
 
