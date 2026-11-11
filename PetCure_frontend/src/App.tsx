@@ -1,6 +1,7 @@
 //App.tsx是应用的主组件，负责组织和展示页面内容。main.tsx是程序的入口，负责启动React应用
 import {useState,type FormEvent} from 'react'
 //useState:保存用户输入
+import RegisterForm from './RegisterForm'
 
 import {useEffect} from 'react'
 
@@ -11,7 +12,7 @@ export default function App(){
   const [message,setMessage] = useState('')
   const [submitting,setSubmitting] = useState(false)
   const [displayName, setDisplayName] = useState<string | null>(null)
-
+  const [showRegister,setShowRegister] = useState(false)
  
   const [restoring, setRestoring] = useState(
   () => Boolean(sessionStorage.getItem('petcure.accessToken')),
@@ -170,6 +171,21 @@ export default function App(){
     </main>
   )
 }
+
+
+if (showRegister) {
+  return (
+    <RegisterForm
+      onBack={() => setShowRegister(false)}
+      onRegistered={(registeredUsername) => {
+        setUsername(registeredUsername)
+        setPassword('')
+        setMessage('注册成功，请登录')
+        setShowRegister(false)
+      }}
+    />
+  )
+}
   return(
     <main>
       <h1>PetCure 登录</h1>
@@ -202,6 +218,17 @@ export default function App(){
 
          <button type="submit" disabled={submitting}>
           {submitting ? '登录中…' : '登录'}
+          </button>
+
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => {
+            setMessage('')
+            setShowRegister(true)
+          }}
+          >
+            去注册
           </button>
         <p role="status">{message}</p>
       </form>
