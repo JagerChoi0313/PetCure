@@ -8,6 +8,10 @@ import com.petcure.backend.mapper.USERMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
+
 @Service
 public class UserService {
     private final USERMapper userMapper;
@@ -27,11 +31,36 @@ public class UserService {
             );
         }
 
+        //1.获取生日
+        LocalDate birthday = user.getBirthday();
+
+        //2.根据上海时区的当前日期计算周岁、
+        Integer age = null;
+
+        if(birthday != null){
+            LocalDate today = LocalDate.now(
+                    ZoneId.of("Asia/Shanghai")
+            );
+
+            age = Period.between(birthday,today).getYears();
+        }
+
+        //3.将数据库中的资料组织成接口返回对象
         return new UserProfileResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getNickname(),
-                user.getAvatar_url()
+                user.getAvatar_url(),
+                user.getGender(),
+                birthday,
+                age,
+                user.getOccupation(),
+                user.getCity(),
+                user.getBio(),
+                user.getPhone(),
+                user.getEmail(),
+                user.getCreated_at(),
+                user.getLast_login_at()
         );
     }
 }
