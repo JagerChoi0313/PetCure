@@ -32,7 +32,7 @@ public class UpdateUserContactRequest {
     }
 
     //邮箱去除首尾空白，并统一转换为小写
-    public void setEmail(String Email){
+    public void setEmail(String email){
         String normalizedEmail = normalize(email);
 
         this.email = normalizedEmail == null
