@@ -17,7 +17,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.nio.charset.StandardCharsets;
-
+import java.util.Locale;
 
 
 @Getter
@@ -68,10 +68,20 @@ public class RegisterRequest {
 
     //未填写的邮箱统一转换为null
     public void setEmail(String email){
-        this.email = normalize(email);
+
+        String normalizedEmail = normalize(email);
+
+        this.email = normalizedEmail == null
+                ?null
+                :normalizedEmail.toLowerCase(Locale.ROOT);
     }
 
     //手机号、邮箱至少填一个
+    @AssertTrue(message = "手机号和邮箱至少填一个")
+    public boolean isContactProvided(){
+        return phone != null || email != null;
+    }
+
     @AssertTrue(message = "两次输入的密码不一致")
     public boolean isPasswordConfirmed(){
         if(password == null || confirmPassword == null){
