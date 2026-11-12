@@ -1,16 +1,16 @@
 package com.petcure.backend.controller;
 
 import com.petcure.backend.common.ApiResponse;
+import com.petcure.backend.duo.user.UpdateUserProfileRequest;
 import com.petcure.backend.duo.user.UserProfileResponse;
 import com.petcure.backend.exception.BusinessException;
 import com.petcure.backend.service.UserService;
+import jakarta.validation.Valid;
 import org.apache.catalina.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/users")
@@ -33,6 +33,20 @@ public class UserController {
                 );
     }
 
+
+    //添加修改资料的接口
+    @PutMapping("/me/profile")
+    public ApiResponse<UserProfileResponse>updateProfile(
+            @AuthenticationPrincipal Jwt jwt,   //获取Spring Security已经验证过的JWT
+            @Valid @RequestBody UpdateUserProfileRequest request    //@Request：将请求体中的JSON转换为Request对象   @valid：执行Request中的字段校验和生日检查
+            ){
+        Long userId = getCurrentUserId(jwt);
+
+        return ApiResponse.success(
+                userService.updateCurrentUser(userId,request)
+        );
+    }
+
     private Long getCurrentUserId(Jwt jwt){
         try{
             Long userId = Long.valueOf(jwt.getSubject());
@@ -42,7 +56,7 @@ public class UserController {
             }
 
             return userId;
-        }catch(NumberFormatException){
+        }catch(NumberFormatException exception){
             throw new BusinessException(
                     HttpStatus.UNAUTHORIZED,
                     "UNAUTHORIZED",
