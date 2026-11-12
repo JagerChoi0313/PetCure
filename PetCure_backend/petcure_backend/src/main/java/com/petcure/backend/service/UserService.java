@@ -67,6 +67,7 @@ public class UserService {
         );
     }
 
+    //本次新增保存逻辑
     @Transactional
     public UserProfileResponse updateCurrentUser(
         Long userId,
@@ -77,7 +78,25 @@ public class UserService {
                 null,
                 new LambdaUpdateWrapper<USER>()
                         .eq(USER::getId,userId)
+                        //“set”确定修改哪些字段，这里的set也可以清空旧值
                         .set(USER::getNickname,request.getNickname())
-        )
+                        .set(USER::getGender,request.getGender())
+                        .set(USER::getBirthday,request.getBirthday())
+                        .set(USER::getOccupation,request.getOccupation())
+                        .set(USER::getCity,request.getBio())
+        );
+
+        //2.更新行数为0时，确认用户是否仍然存在
+        //某些数据库连接配置下，提交相同资料也可能返回0
+        if (updateedRows == 0 && userMapper.selectById(userId)==null){
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "UNAUTHORIZED",
+                    "用户不存在，请重新登录"
+            );
+        }
+
+        //重新查询
+        return getCurrentUser(userId);
     }
 }
