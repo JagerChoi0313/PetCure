@@ -83,7 +83,8 @@ public class UserService {
                         .set(USER::getGender,request.getGender())
                         .set(USER::getBirthday,request.getBirthday())
                         .set(USER::getOccupation,request.getOccupation())
-                        .set(USER::getCity,request.getBio())
+                        .set(USER::getCity,request.getCity())
+                        .set(USER::getBio,request.getBio())
         );
 
         //2.更新行数为0时，确认用户是否仍然存在
