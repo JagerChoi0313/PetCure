@@ -25,24 +25,29 @@ public class UserController {
     public ApiResponse<UserProfileResponse>me(
             @AuthenticationPrincipal Jwt jwt    //获取的是 Spring Security 已经完成签名、有效期等检查的 JWT。
             ){
-                Long userId;
-
-                try{
-                    userId = Long.valueOf(jwt.getSubject());//读取 JWT 中的 sub，也就是之前生成令牌时保存的用户 ID：
-
-                    if(userId<=0){
-                        throw new NumberFormatException();
-                    }
-                }catch (NumberFormatException exception){
-                    throw new BusinessException(
-                            HttpStatus.UNAUTHORIZED,
-                            "UNAUTHORIZED",
-                            "令牌中的用户ID无效，请重新登录"
-                    );
-                }
+                //接口行为没有改变，只是吧读取ID的代码移动到公共方法中
+                Long userId = getCurrentUserId(jwt);
 
                 return ApiResponse.success(
                         userService.getCurrentUser(userId)
                 );
+    }
+
+    private Long getCurrentUserId(Jwt jwt){
+        try{
+            Long userId = Long.valueOf(jwt.getSubject());
+
+            if(userId <= 0){
+                throw new NumberFormatException();
+            }
+
+            return userId;
+        }catch(NumberFormatException){
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "UNAUTHORIZED",
+                    "令牌中的用户ID无效，请重新登录"
+            );
+        }
     }
 }
