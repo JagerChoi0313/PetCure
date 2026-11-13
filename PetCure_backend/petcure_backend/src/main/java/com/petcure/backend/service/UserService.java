@@ -4,6 +4,7 @@ package com.petcure.backend.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.petcure.backend.duo.user.UpdateUserContactRequest;
+import com.petcure.backend.duo.user.UpdateUserPasswordRequest;
 import com.petcure.backend.duo.user.UpdateUserProfileRequest;
 import com.petcure.backend.duo.user.UserProfileResponse;
 import com.petcure.backend.entity.USER;
@@ -195,4 +196,73 @@ public class UserService {
         //返回保存后的完整资料
         return getCurrentUser(userId);
     }
+
+
+    //添加修改密码的方法
+    @Transactional
+    public void updatedCurrentUserPassword(
+        Long userId,
+        Long tokenVersion,
+        UpdateUserPasswordRequest request
+    ){
+        //1.查询用户，并确认请求使用的登录版本仍然有效
+        USER user = userMapper.selectById(userId);
+
+        if (user == null || tokenVersion == null || !tokenVersion.equals(user.getToken_version())) {
+                    throw new BusinessException(
+                            HttpStatus.UNAUTHORIZED,
+                            "UNAUTHORIZED",
+                            "登录状态已失效，请重新登录"
+                    );
+        }
+
+        //2.核对当前密码
+        if(!passwordEncoder.matches(
+                request.getCurrentPassword(),
+                user.getPassword_hash()
+        )){
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "CURRENT_PASSWORD_INCORRECT",
+                    "当前密码不正确"
+            );
+        }
+
+        //新密码不能与原密码相同
+        if (passwordEncoder.matches(
+                request.getNewPassword(),
+                user.getPassword_hash()
+        )){
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "NEW_PASSWORD_SAME_AS_OLD",
+                    "新密码不能与当前密码相同"
+            );
+        }
+
+        //4，生成新密码的哈希
+        String newPasswordHash = passwordEncoder.encode(
+                request.getNewPassword()
+        );
+
+        //5.同时更新密码哈希和登录凭证版本号
+        int updateRows = userMapper.update(
+                null,
+                new LambdaUpdateWrapper<USER>()
+                        .eq(USER::getId,userId)
+                        .eq(USER::getToken_version,tokenVersion)
+                        .set(USER::getPassword_hash,newPasswordHash)
+                        .setSql("token_version=token_version+1")
+        );
+
+        //6.必须成功更新一条记录
+        if (updateRows != 1){
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "UNAUTHORIZED",
+                    "登录状态已发生改变，请重新登录后重试"
+            );
+        }
+    }
+
 }
