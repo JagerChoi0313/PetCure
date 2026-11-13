@@ -2,6 +2,7 @@ package com.petcure.backend.controller;
 
 import com.petcure.backend.common.ApiResponse;
 import com.petcure.backend.duo.user.UpdateUserContactRequest;
+import com.petcure.backend.duo.user.UpdateUserPasswordRequest;
 import com.petcure.backend.duo.user.UpdateUserProfileRequest;
 import com.petcure.backend.duo.user.UserProfileResponse;
 import com.petcure.backend.exception.BusinessException;
@@ -77,5 +78,25 @@ public class UserController {
                     "令牌中的用户ID无效，请重新登录"
             );
         }
+    }
+
+    @PutMapping("/me/password")
+    public ApiResponse<Void> updatePassword(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateUserPasswordRequest request
+            ){
+                Long userId = getCurrentUserId(jwt);
+
+                //JwtConfig已经检查过版本号的类型、范围和有效性
+                Number versionClaim = (Number)jwt.getClaims().get("token_version");
+                Long tokenVersion = versionClaim.longValue();
+
+                userService.updateCurrentUserPassword(
+                        userId,
+                        tokenVersion,
+                        request
+                );
+
+                return ApiResponse.success();
     }
 }
