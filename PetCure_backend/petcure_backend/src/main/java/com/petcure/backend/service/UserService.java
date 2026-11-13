@@ -141,6 +141,23 @@ public class UserService {
         String phone = request.getPhone();
         String email = request.getEmail();
 
+        //检查手机号是否被其它用户占用
+        if(phone != null){
+            boolean phoneExists = userMapper.selectCount(
+                    new LambdaQueryWrapper<USER>()
+                            .eq(USER::getPhone,phone)
+                            .ne(USER::getId,userId)
+            )>0;
+
+            if (phoneExists){
+                throw new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "PHONE_EXISTS",
+                        "手机号已被使用"
+                );
+            }
+        }
+
         //检查邮箱是否被其它用户使用
         if (email!=null){
             boolean emailExists = userMapper.selectCount(//查重时要排除自己
