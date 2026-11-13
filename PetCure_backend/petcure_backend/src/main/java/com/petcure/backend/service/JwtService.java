@@ -40,14 +40,16 @@ public class JwtService {
     }
 
     //最核心的方法：为已经通过身份验证的用户生成Jwt访问令牌
-    public Jwt createAccessToken(Long userId){
+    public Jwt createAccessToken(Long userId,Long tokenVersion){
         if(userId == null || userId<=0){
             throw new IllegalArgumentException("用户ID必须为正数");//检查用户ID
         }
         //另外，检查用户ID合法不等于验证用户身份。
         // JwtService默认相信调用它的业务代码已经完成了登录认证，它本身不会检查密码
 
-
+        if(tokenVersion == null || tokenVersion < 0){
+            throw new IllegalArgumentException("登录凭证版本号不能为空或负数");
+        }
         //计算Jwt过期时间
         Instant now = Instant.now();    //Instant是Java提供的时间类，表示时间线上的一个具体时刻
         Instant expiresAt = now.plusSeconds(accessTokenTtlSeconds);//表示现在的时间加上间隔时间
@@ -61,6 +63,7 @@ public class JwtService {
                 .issuedAt(now)                  //iat：签发时间
                 .expiresAt(expiresAt)           //exp：过期时间
                 .id(UUID.randomUUID().toString())   //jti：Token唯一标识。UUID是一种用于生成标识符的机制
+                .claim("token_version",tokenVersion)
                 .build();
 
         //这里创建的是JWT的头部
