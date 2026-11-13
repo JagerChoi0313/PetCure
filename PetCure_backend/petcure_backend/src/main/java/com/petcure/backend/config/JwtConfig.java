@@ -148,7 +148,6 @@ public class JwtConfig {
                         )
                 );
             }
-            
             //查询这个用户当前的登录凭证版本号
             USER user = userMapper.selectById(userId);
 
