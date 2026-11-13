@@ -22,6 +22,9 @@ public class USER {
     //密码哈希
     private String password_hash;
 
+    //登录凭证版本号，修改密码时递增
+    private Long token_version;
+
     //昵称
     private String nickname;
 
