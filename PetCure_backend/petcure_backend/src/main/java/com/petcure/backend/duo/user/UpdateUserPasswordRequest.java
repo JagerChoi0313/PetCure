@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 @Setter
 public class UpdateUserPasswordRequest {
     @NotBlank(message = "当前密码不能为空")
-    @Size(message = "当前密码不能超过64个字符")
+    @Size(max=64,message = "当前密码不能超过64个字符")
     private String currentPassword;
 
     @NotBlank(message = "新密码不能为空")
@@ -38,6 +38,13 @@ public class UpdateUserPasswordRequest {
 
         return newPassword.equals(confirmPassword);
     }
+
+    //当前密码的检查方法
+    @AssertTrue(message = "当前密码UTF-8编码后的长度不能超过72字节")
+    public boolean isCurrentPasswordWithinByteLimit(){
+        return currentPassword == null || currentPassword.getBytes(StandardCharsets.UTF_8).length<=72;
+    }
+
 
     //当前密码必须符合BCryPt的输入长度限制
     @AssertTrue(message = "新密码UTF-8编码后的长度不能超过72字节")
