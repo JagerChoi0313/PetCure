@@ -107,7 +107,7 @@ public class AuthService {//身份认证业务服务类
         }
 
         //3.身份验证通过，生成JWT
-        Jwt jwt = jwtService.createAccessToken(user.getId());
+        Jwt jwt = jwtService.createAccessToken(user.getId(),user.getToken_version());
 
         //4.更新最后登录时间，使用UTC与数据库时间保持一致
         userMapper.update(
