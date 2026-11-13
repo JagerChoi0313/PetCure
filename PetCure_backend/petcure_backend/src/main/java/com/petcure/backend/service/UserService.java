@@ -1,13 +1,16 @@
 package com.petcure.backend.service;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.petcure.backend.duo.user.UpdateUserContactRequest;
 import com.petcure.backend.duo.user.UpdateUserProfileRequest;
 import com.petcure.backend.duo.user.UserProfileResponse;
 import com.petcure.backend.entity.USER;
 import com.petcure.backend.exception.BusinessException;
 import com.petcure.backend.mapper.USERMapper;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +21,14 @@ import java.time.ZoneId;
 @Service
 public class UserService {
     private final USERMapper userMapper;
+    private final PasswordEncoder passwordEncoder;//注入密码处理器
 
-    public UserService(USERMapper userMapper){
+    public UserService(
+            USERMapper userMapper,
+            PasswordEncoder passwordEncoder
+    ){
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public UserProfileResponse getCurrentUser(Long userId){
@@ -98,6 +106,76 @@ public class UserService {
         }
 
         //重新查询
+        return getCurrentUser(userId);
+    }
+
+    @Transactional
+    public UserProfileResponse updateCurrentUserContact(
+            Long userId,
+            UpdateUserContactRequest request
+    ){
+        //1.查询当前用户
+        USER user = userMapper.selectById(userId);
+
+        if (user==null){
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "UNAUTHORIZED",
+                    "用户不存在，请重新登录"
+            );
+        }
+
+        //2.核对当前密码
+        boolean passwordCorrect = passwordEncoder.matches(//密码核对使用matches
+                request.getCurrentPassword(),//这个参数是用户提交的原始密码
+                user.getPassword_hash()//这个是数据库里的密码哈希
+        );
+        if(!passwordCorrect){
+            throw new BusinessException(
+              HttpStatus.BAD_REQUEST,
+              "CURRENT_PASSWORD_INCORRECT",
+              "当前密码不正确"
+            );
+        }
+
+        String phone = request.getPhone();
+        String email = request.getEmail();
+
+        //检查邮箱是否被其它用户使用
+        if (email!=null){
+            boolean emailExists = userMapper.selectCount(//查重时要排除自己
+                    new LambdaQueryWrapper<USER>()
+                            .eq(USER::getEmail,email)//eq表示相等，ne表示不相等
+                            .ne(USER::getId,userId)
+                    )>0;
+
+                    if (emailExists){
+                        throw new BusinessException(
+                                HttpStatus.CONFLICT,
+                                "EMAIL_EXISTS",
+                                "邮箱已被使用"
+                        );
+                    }
+                }
+
+        //5,保存整组联系方式，允许其中的一项为null
+        int updatedRows = userMapper.update(
+                null,
+                new LambdaUpdateWrapper<USER>()
+                        .eq(USER::getId, userId)
+                        .set(USER::getPhone,phone)
+                        .set(USER::getEmail, email)
+        );
+
+        //相同值重复保存可能返回0，需要区分用户不存在的情况
+        if(updatedRows == 0 && userMapper.selectById(userId) == null){
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "UNAUTHORIZED",
+                    "用户不存在，请重新登录"
+            );
+        }
+        //返回保存后的完整资料
         return getCurrentUser(userId);
     }
 }
