@@ -1,6 +1,7 @@
 package com.petcure.backend.controller;
 
 import com.petcure.backend.common.ApiResponse;
+import com.petcure.backend.duo.user.UpdateUserContactRequest;
 import com.petcure.backend.duo.user.UpdateUserProfileRequest;
 import com.petcure.backend.duo.user.UserProfileResponse;
 import com.petcure.backend.exception.BusinessException;
@@ -44,6 +45,19 @@ public class UserController {
 
         return ApiResponse.success(
                 userService.updateCurrentUser(userId,request)
+        );
+    }
+
+    //添加修改联系方式的接口
+    @PutMapping("/me/contact")
+    public ApiResponse<UserProfileResponse>updateContact(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateUserContactRequest request
+            ){
+        Long userId = getCurrentUserId(jwt);
+
+        return ApiResponse.success(
+                userService.updateCurrentUserContact(userId,request)
         );
     }
 
