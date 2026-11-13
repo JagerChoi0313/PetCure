@@ -200,7 +200,7 @@ public class UserService {
 
     //添加修改密码的方法
     @Transactional
-    public void updatedCurrentUserPassword(
+    public void updateCurrentUserPassword(
         Long userId,
         Long tokenVersion,
         UpdateUserPasswordRequest request
