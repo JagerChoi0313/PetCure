@@ -2,7 +2,9 @@ package com.petcure.backend.config;
 //这段JwtConfig的作用是告诉Spring Security：使用什么密钥签发JWT，以及收到JWT后按照什么规则验证它
 
 import com.nimbusds.jwt.JWTClaimNames;
+import com.petcure.backend.entity.USER;
 import com.petcure.backend.mapper.JwtRevocationMapper;
+import com.petcure.backend.mapper.USERMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -64,7 +66,8 @@ public class JwtConfig {
             SecretKey jwtSecretKey,
             @org.springframework.beans.factory.annotation.Value("${app.jwt.issuer}") String issuer,
             @Value("${app.jwt.audience}") String audience,
-            JwtRevocationMapper jwtRevocationMapper
+            JwtRevocationMapper jwtRevocationMapper,
+            USERMapper userMapper
     ){
         //构建解码器，这一步告诉Spring Security，使用HS256算法和同一个密钥来验证Token的签名
         NimbusJwtDecoder decoder = NimbusJwtDecoder
@@ -117,6 +120,49 @@ public class JwtConfig {
                 );
             }
 
+            //读取并检查JWT中的用户ID和版本号
+            Long userId;
+            Long tokenVersion;
+
+            try {
+                userId = Long.valueOf(jwt.getSubject());
+                Object versionClaim = jwt.getClaims().get("token_version");
+
+                //版本号必须存在，并且是数字类型
+                if (!(versionClaim instanceof Number)) {
+                    throw new NumberFormatException();
+                }
+
+                //转成Long，同时拒绝小数和超出Long范围的值
+                tokenVersion = Long.valueOf(versionClaim.toString());
+
+                if (userId <= 0 || tokenVersion < 0) {
+                    throw new NumberFormatException();
+                }
+            }catch(NumberFormatException exception){
+                return OAuth2TokenValidatorResult.failure(
+                        new OAuth2Error(
+                                "invalid_token",
+                                "JWT中的用户ID或登录凭证版本号无效",
+                                null
+                        )
+                );
+            }
+            
+            //查询这个用户当前的登录凭证版本号
+            USER user = userMapper.selectById(userId);
+
+            //用户不存在，或版本不一样，认证失败
+            if (user==null || !Objects.equals(user.getToken_version(),tokenVersion)){
+
+                    return OAuth2TokenValidatorResult.failure(
+                            new OAuth2Error(
+                                    "invalid_token",
+                                    "登录凭证已失效，请重新登录",
+                                    null
+                            )
+                    );
+            }
             return OAuth2TokenValidatorResult.success();
         });
 
