@@ -22,7 +22,7 @@ public class FileMetadata {
     private Long user_id;
 
     //上传时的原始文件名
-    private Long suer_id;
+    private String original_name;
 
     //后端生成的存储标识
     private String storage_key;
@@ -31,15 +31,22 @@ public class FileMetadata {
     private String mime_type;
 
     //文件大小，单位字节
-    private String size_bytes;
+    private Long size_bytes;
 
-    //0临时，1已失联，2待清理
+    //0临时，1已关联，2待清理
     private Integer status;
 
     //创建时间，由数据库维护
     @TableField(
             //表示 MyBatis-Plus 根据实体生成插入、更新 SQL 时，不主动写入这些字段，交给数据库的默认值和自动更新规则维护
             //数据库生成的时间不会因此自动回填到刚插入的 Java 对象中；如果需要拿到这些时间，应当重新查询记录。
+            insertStrategy = FieldStrategy.NEVER,
+            updateStrategy = FieldStrategy.NEVER
+    )
+    private LocalDateTime created_at;
+
+    //最后更新时间，由数据库维护
+    @TableField(
             insertStrategy = FieldStrategy.NEVER,
             updateStrategy = FieldStrategy.NEVER
     )
