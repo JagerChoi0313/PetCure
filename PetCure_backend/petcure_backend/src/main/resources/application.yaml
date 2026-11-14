@@ -11,6 +11,12 @@ spring:
     hikari:
       connection-init-sql: "SET time_zone = '+00:00'"
 
+#   配置上传大小：文件保存到哪里，以及允许上传多大的文件
+    servlet:
+      multipart:
+        max-file-size:5MB   #单个文件最多5MB
+        max-request-size:6MB    #整个请求最多6MB，上传请求除了图片本身还有文件名、表单边界等额外内容，所以整个请求的上限略大
+                                #超过限制时，框架会在进入上传Controller方法之前拒绝请求
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
@@ -21,3 +27,7 @@ app:
     issuer: petcure-backend
     audience: petcure-api
     access-token-ttl-seconds: 1800
+
+# 配置存储目录
+  storage:
+    root-dir:"${PETCURE_STORAGE_ROOT:D:/PetCure-data/uploads}"
