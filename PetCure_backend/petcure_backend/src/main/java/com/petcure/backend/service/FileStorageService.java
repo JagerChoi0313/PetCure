@@ -1,7 +1,10 @@
 package com.petcure.backend.service;
 
 import com.petcure.backend.config.FileStorageProperties;
+import com.petcure.backend.exception.BusinessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,6 +12,9 @@ import java.nio.file.Path;
 
 @Service
 public class FileStorageService {
+
+    //定义头像大小上限
+    private static final long MAX_AVATAR_SIZE = 5L * 1024 * 1024;//头像最大为5MB，单位为字节
 
     //文件实际保存的根目录
     private final Path rootDir;
@@ -40,6 +46,29 @@ public class FileStorageService {
             );
         }
     }
+
+    private void validateAvatarFile(MultipartFile file){
+        //1.必须上传有内容的文件
+        if (file == null || file.isEmpty()){
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "FILE_EMPTY",
+                    "请选择非空的头像文件"
+            );
+        }
+
+        //2.文件大小不能超过5MB
+        if (file.getSize()>MAX_AVATAR_SIZE){
+            throw new BusinessException(
+                    HttpStatus.PAYLOAD_TOO_LARGE,
+                    "FILE_TOO_LARGE",
+                    "头像文件不能超过5MB"
+            );
+        }
+    }
+    //为什么配置限制之外，还要在 Service 检查
+    //两者职责不同：1.spring.servlet.multipart在请求解析阶段限制上传大小    2.Service明确执行“头像不能超过5MB”的业务规则
+    //正常 HTTP 上传超限时，通常会先被框架拦截，因此不一定会执行到这里的大小检查。后续我们会补充框架上传异常的统一提示。
 }
 
 //路径就是描述“某个文件或目录在哪里”的地址，例如：D:\PetCure-data\\uploads指向一个目录，所以它是目录路径
