@@ -116,6 +116,10 @@ public class FileStorageService {
                 String format = reader.getFormatName()
                         .toLowerCase(Locale.ROOT);
 
+                if("jpg".equals(format)){
+                    format = "jpeg";
+                }
+
                 if (!"jpeg".equals(format)
                         && !"png".equals(format)
                         && !"webp".equals(format)){
