@@ -118,7 +118,7 @@ public class FileStorageService {
 
                 if (!"jpeg".equals(format)
                         && !"png".equals(format)
-                        && !"webq".equals(format)){
+                        && !"webp".equals(format)){
                     throw invalidAvatarImage(
                             "头像只支持JPG、PNG、WebP图片"
                     );
