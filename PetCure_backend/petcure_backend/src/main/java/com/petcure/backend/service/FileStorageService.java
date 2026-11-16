@@ -2,6 +2,7 @@ package com.petcure.backend.service;
 
 import com.petcure.backend.config.FileStorageProperties;
 import com.petcure.backend.exception.BusinessException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,11 +13,16 @@ import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.UUID;
 
+
+@Slf4j
 @Service
 public class FileStorageService {
 
@@ -158,6 +164,61 @@ public class FileStorageService {
         }catch(IOException|IllegalArgumentException exception){
             throw invalidAvatarImage(
                     "图片读取失败，请使用有效的JPG、PNG和WebP图片"
+            );
+        }
+    }
+
+    //添加保存图片的方法
+    private String saveAvatarFile(MultipartFile file,String format){
+        //format必须来自前面的图片内容校验结果
+        String extension = switch (format){
+            case "jpeg"->"jpg";
+            case "png"->"png";
+            case "webp"->"webp";
+            default -> throw invalidAvatarImage("不支持的头像图片格式");
+        };
+
+        //使用后端生成的随机名称，不能用原文件名拼接路径
+        String filename = UUID.randomUUID() + "." + extension;
+        String storageKey = "avatars/" + filename;
+
+        Path target = rootDir.resolve(storageKey);
+        boolean fileCreated = false;
+
+        try{
+            //准备图片所在的父目录
+            Files.createDirectories(target.getParent());
+
+            try(InputStream input = file.getInputStream()){
+                //文件必须是新建的，不能覆盖已有文件
+                try(OutputStream output=Files.newOutputStream(
+                        target,
+                        StandardOpenOption.CREATE_NEW,
+                        StandardOpenOption.WRITE
+                )){
+                    fileCreated = true;
+
+                    //将上传的文件内容写入磁盘
+                    input.transferTo(output);
+                }
+            }
+            return storageKey;
+        }catch (IOException exception){
+            //如果已经创建文件，写入失败时尝试清理残留
+            if (fileCreated){
+                try{
+                    Files.deleteIfExists(target);
+                }catch(IOException cleanupException){
+                    exception.addSuppressed(cleanupException);
+                }
+            }
+
+            log.error("保存头像文件失败",exception);
+
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "FILE_SAVE_FAILED",
+                    "头像保存失败，请稍后重试"
             );
         }
     }
