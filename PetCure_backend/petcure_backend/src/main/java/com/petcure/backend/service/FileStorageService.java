@@ -2,6 +2,7 @@ package com.petcure.backend.service;
 
 import com.petcure.backend.config.FileStorageProperties;
 import com.petcure.backend.exception.BusinessException;
+import com.petcure.backend.mapper.FileMetadataMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,9 +35,15 @@ public class FileStorageService {
     //文件实际保存的根目录
     private final Path rootDir;
 
+    //注入文件Mapper
+    private final FileMetadataMapper fileMetadataMapper;
+
     public FileStorageService(
-            FileStorageProperties fileStorageProperties
+            FileStorageProperties fileStorageProperties,
+            FileMetadataMapper fileMetadataMapper
     ){
+        this.fileMetadataMapper = fileMetadataMapper;
+
         //将配置中的字符串转换为路径对象
         Path configuredDir = Path.of(//"Path.of"将路径字符串转换为Java路径对象
                 fileStorageProperties.getRootDir()

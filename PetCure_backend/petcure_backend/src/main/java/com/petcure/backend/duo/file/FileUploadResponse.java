@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class FileUploadResponse {
-    
+
         private final Long fileId;
 
         private final String mimeType;
