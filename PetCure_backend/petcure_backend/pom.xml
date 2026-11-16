@@ -30,6 +30,12 @@
 		<java.version>21</java.version>
 	</properties>
 	<dependencies>
+		<!--让ImageIO能够读取WebP图片-->
+		<dependency>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-webp</artifactId>
+			<version>3.15.3</version>
+		</dependency>
 		<!-- Spring Security与JWT支持 -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
