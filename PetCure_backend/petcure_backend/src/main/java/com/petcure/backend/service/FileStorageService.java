@@ -1,11 +1,14 @@
 package com.petcure.backend.service;
 
 import com.petcure.backend.config.FileStorageProperties;
+import com.petcure.backend.duo.file.FileUploadResponse;
+import com.petcure.backend.entity.FileMetadata;
 import com.petcure.backend.exception.BusinessException;
 import com.petcure.backend.mapper.FileMetadataMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -37,6 +40,8 @@ public class FileStorageService {
 
     //注入文件Mapper
     private final FileMetadataMapper fileMetadataMapper;
+
+
 
     public FileStorageService(
             FileStorageProperties fileStorageProperties,
@@ -228,6 +233,80 @@ public class FileStorageService {
                     "头像保存失败，请稍后重试"
             );
         }
+    }
+
+    //添加上传业务方法
+    @Transactional
+    public FileUploadResponse uploadAvatar(
+            Long userId,
+            MultipartFile file
+    ){
+        //1，校验文件，取得实际图片格式
+        String format = validateAvatarImageContent(file);
+
+        //2.根据实际格式确定内容类型
+        String mimeType = switch(format){
+            case "jpeg"->"image/jpeg";
+            case "png" -> "image/png";
+            case "webq"-> "image/webp";
+            default -> throw invalidAvatarImage("不支持的头像图片格式");
+        };
+
+        //处理原文件名，只用于记录和展示
+        String originalName = file.getOriginalFilename();
+
+        if(originalName == null){
+            originalName = "";
+        }
+
+        originalName = originalName.replace('\\','/');
+        originalName = originalName.substring(
+                originalName.lastIndexOf('/')+1
+        ).strip();
+
+        if(originalName.isEmpty()){
+            originalName = "avatar";
+        }
+
+        if(originalName.length()>255 || originalName.chars().anyMatch(Character::isISOControl)){
+            throw new BusinessException(
+              HttpStatus.BAD_REQUEST,
+              "INVALID_FILE_NAME",
+              "文件名不能超过255个字符，且不能包含控制字符"
+            );
+        }
+
+        //4.保存磁盘文件
+        String storageKey = saveAvatarFile(file,format);
+
+        //5.如果后续数据库事物回滚，清理刚保存的1文件
+        registerRollbackCleanup(storageKey);
+
+        //6.创建临时文件记录
+        FileMetadata metadata = new FileMetadata();
+        metadata.setUser_id(userId);
+        metadata.setOriginal_name(originalName);
+        metadata.setStorage_key(storageKey);
+        metadata.setMime_type(mimeType);
+        metadata.setSize_bytes(file.getSize());
+        metadata.setStatus(0);
+
+        int insertedRows = fileMetadataMapper.insert(metadata);
+
+        if(insertedRows != 1 || metadata.getId() == null){
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "FILE_METADATA_SAVE_FAILED",
+                    "文件信息保存失败，请稍后重试"
+            );
+        }
+
+        //7.返回文件ID及必要描述信息
+        return new FileUploadResponse(
+                metadata.getId(),
+                metadata.getMime_type(),
+                metadata.getSize_bytes()
+        );
     }
 }
 
