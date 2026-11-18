@@ -250,7 +250,7 @@ public class FileStorageService {
         String mimeType = switch(format){
             case "jpeg"->"image/jpeg";
             case "png" -> "image/png";
-            case "webq"-> "image/webp";
+            case "webp"-> "image/webp";
             default -> throw invalidAvatarImage("不支持的头像图片格式");
         };
 
