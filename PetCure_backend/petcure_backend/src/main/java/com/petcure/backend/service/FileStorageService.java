@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -306,6 +308,35 @@ public class FileStorageService {
                 metadata.getId(),
                 metadata.getMime_type(),
                 metadata.getSize_bytes()
+        );
+    }
+
+    private void registerRollbackCleanup(String storageKey){
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+
+                    @Override
+                    public void afterCompletion(int status){
+                        if(status == TransactionSynchronization.STATUS_ROLLED_BACK){
+                            try{
+                                Files.deleteIfExists(
+                                        rootDir.resolve(storageKey)
+                                );
+                            }catch (IOException exception){
+                                log.error(
+                                        "事物回滚后清理头像文件失败，stroageKey={}",
+                                        storageKey,
+                                        exception
+                                );
+                            }
+                        }else if(status == TransactionSynchronization.STATUS_UNKNOWN){
+                            log.error(
+                                     "上传结果未知，保留文件待核对，storageKey={}",
+                                    storageKey
+                            );
+                        }
+                    }
+                }
         );
     }
 }
