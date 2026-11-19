@@ -3,9 +3,20 @@ package com.petcure.backend.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.petcure.backend.entity.USER;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface USERMapper extends BaseMapper<USER> {
+
+    //给用户Mapper添加锁定查询
+    @Select("""
+            SELECT *
+            FROM `USER`
+            WHERE id = #{userId}
+            FOR UPDATE
+            """)
+    USER selectByIdForUpdate(@Param("userId")Long userId);
 
 }
 
