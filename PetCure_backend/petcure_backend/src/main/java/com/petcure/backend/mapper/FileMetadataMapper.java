@@ -24,4 +24,6 @@ public interface FileMetadataMapper extends BaseMapper<FileMetadata> {
             @Param("fileId")Long fileId,
             @Param("userId")Long userId
     );
+
+    //@Param("userId") Long userId为方法参数起名，SQL中的#{userId}引用这个参数，并通过参数绑定传给数据库
 }
