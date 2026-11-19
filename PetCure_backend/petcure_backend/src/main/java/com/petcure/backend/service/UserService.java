@@ -3,12 +3,11 @@ package com.petcure.backend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.petcure.backend.duo.user.UpdateUserContactRequest;
-import com.petcure.backend.duo.user.UpdateUserPasswordRequest;
-import com.petcure.backend.duo.user.UpdateUserProfileRequest;
-import com.petcure.backend.duo.user.UserProfileResponse;
+import com.petcure.backend.duo.user.*;
+import com.petcure.backend.entity.FileMetadata;
 import com.petcure.backend.entity.USER;
 import com.petcure.backend.exception.BusinessException;
+import com.petcure.backend.mapper.FileMetadataMapper;
 import com.petcure.backend.mapper.USERMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,18 +17,25 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
+import java.util.Objects;
 
 @Service
 public class UserService {
     private final USERMapper userMapper;
     private final PasswordEncoder passwordEncoder;//注入密码处理器
+    private final FileMetadataMapper fileMetadataMapper;
+    private final FileStorageService fileStorageService;
 
     public UserService(
             USERMapper userMapper,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            FileStorageService fileStorageService,
+            FileMetadataMapper fileMetadataMapper
     ){
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.fileMetadataMapper = fileMetadataMapper;
+        this.fileStorageService = fileStorageService;
     }
 
     public UserProfileResponse getCurrentUser(Long userId){
@@ -263,6 +269,105 @@ public class UserService {
                     "登录状态已发生改变，请重新登录后重试"
             );
         }
+    }
+
+    @Transactional
+    public UserProfileResponse updateCurrentUserAvatar(
+            Long userId,
+            UpdateUserAvatarRequest request
+    ){
+            //1.锁定当前用户
+            USER user = userMapper.selectByIdForUpdate(userId);
+
+            if(user == null){
+                throw new BusinessException(
+                        HttpStatus.UNAUTHORIZED,
+                        "UNAUTHORIZED",
+                        "用户不存在，请重新登录"
+                );
+            }
+
+            //2.查询并锁定属于当前用户的文件
+        FileMetadata metadata =
+                fileMetadataMapper.selectOwnedFileForUpdate(
+                        request.getFileId(),
+                        userId
+                );
+
+          if (metadata == null){
+              throw avatarFileUnavailable();
+          }
+
+          //3.临时文件和已关联文件允许使用，待清理文件不允许使用
+        boolean usableStatus =
+                Objects.equals(metadata.getStatus(),0)
+                        || Objects.equals(metadata.getStatus(),1);
+
+          //4.检查记录中的图片类型
+        boolean supportedType =
+                "image/jpeg".equals(metadata.getMime_type())
+                        || "image/png".equals(metadata.getMime_type())
+                        || "image/webp".equals(metadata.getMime_type());
+
+        if(!usableStatus
+                || !supportedType
+                || !fileStorageService.isAvatarFileAvailable(
+                metadata.getStorage_key()
+        )){
+            throw avatarFileUnavailable();
+        }
+
+        //5.临时文件改为已关联
+        if (Objects.equals(metadata.getStatus(),0)){
+            int fileRows = fileMetadataMapper.update(
+                    null,
+                    new LambdaUpdateWrapper<FileMetadata>()
+                            .eq(FileMetadata::getId,metadata.getId())
+                            .eq(FileMetadata::getUser_id,userId)
+                            .eq(FileMetadata::getStatus,0)
+                            .set(FileMetadata::getStatus,1)
+            );
+
+            if (fileRows!=1){
+                throw new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "AVATAR_UPDATE_CONFLICT",
+                        "文件状态发生变化，请重新选择头像"
+                );
+            }
+        }
+
+        //6.生成后端受控访问的路径
+        String avatarUrl = "api/files/"+metadata.getId()+"/content";
+
+        //重复保存同一头像时，不必再次更新用户记录
+        if (!Objects.equals(user.getAvatar_url(),avatarUrl)){
+            int userRows = userMapper.update(
+                    null,
+                    new LambdaUpdateWrapper<USER>()
+                            .eq(USER::getId,userId)
+                            .set(USER::getAvatar_url,avatarUrl)
+            );
+
+            if (userRows != 1){
+                throw new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "AVATAR_UPDATE_CONFLICT",
+                        "头像保存失败，请重试"
+                );
+            }
+        }
+
+        //7,返回后更新个人资料
+        return getCurrentUser(userId);
+    }
+
+    private BusinessException avatarFileUnavailable(){
+        return new BusinessException(
+                HttpStatus.NOT_FOUND,
+                "AVATAR_FILE_UNAVAILABLE",
+                "头像文件不可用，请重新上传"
+        );
     }
 
 }
