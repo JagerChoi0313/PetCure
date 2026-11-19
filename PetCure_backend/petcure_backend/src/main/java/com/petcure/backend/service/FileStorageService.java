@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
@@ -338,6 +339,31 @@ public class FileStorageService {
                     }
                 }
         );
+    }
+
+    //添加磁盘文件可用性检查
+    //数据库记录存在，不一定代表磁盘图片存在，因此这里再确认一下
+    public boolean isAvatarFileAvailable(String storageKey){
+        if(storageKey == null || !storageKey.startsWith("avatars/")){
+            return false;
+        }
+
+        try{
+            Path target = rootDir.resolve(storageKey).normalize();
+
+            //路径必须位于配置的存储根目录内
+            if(!target.startsWith(rootDir)){
+                return false;
+            }
+
+            Path actualPath = target.toRealPath();
+
+            return actualPath.startsWith(rootDir)
+                    &&Files.isRegularFile(actualPath)   //isRegular()检查目标是普通文件
+                    &&Files.isReadable(actualPath);     //isReadable()检查程序能否读取。解析实际路径后再次检查所属目录，可以避免通过目录链接跳到存储根目录之外。
+        }catch (IOException | InvalidPathException exception){
+            return false;
+        }
     }
 }
 
