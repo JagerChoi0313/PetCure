@@ -13,6 +13,7 @@ import org.springframework.web.ErrorResponse;               //统一错误响应
 import org.springframework.web.bind.MethodArgumentNotValidException;     //校验DTO参数失败时抛出的异常
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -148,5 +149,15 @@ public class GlobalExceptionHandler {
                    "INTERNAL_ERROR",
                    "服务器暂时不可用，请稍后重试"
                 ));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>>handleUploadSizeExceeded(
+            MaxUploadSizeExceededException ex
+    ){
+        return ResponseEntity
+                .status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(ApiResponse.error("FILE_TOO_LARGE",
+                                      "上传超过大小限制：单个文件最大5MB，整个请求最大6MB"));
     }
 }
