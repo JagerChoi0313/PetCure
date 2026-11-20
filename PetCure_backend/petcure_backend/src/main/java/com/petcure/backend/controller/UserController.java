@@ -1,10 +1,7 @@
 package com.petcure.backend.controller;
 
 import com.petcure.backend.common.ApiResponse;
-import com.petcure.backend.duo.user.UpdateUserContactRequest;
-import com.petcure.backend.duo.user.UpdateUserPasswordRequest;
-import com.petcure.backend.duo.user.UpdateUserProfileRequest;
-import com.petcure.backend.duo.user.UserProfileResponse;
+import com.petcure.backend.duo.user.*;
 import com.petcure.backend.exception.BusinessException;
 import com.petcure.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -98,5 +95,17 @@ public class UserController {
                 );
 
                 return ApiResponse.success();
+    }
+
+    @PutMapping("/me/avatar")
+    public ApiResponse<UserProfileResponse>updateAvatar(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateUserAvatarRequest request
+            ){
+            Long  userId = getCurrentUserId(jwt);
+
+            return ApiResponse.success(
+                    userService.updateCurrentUserAvatar(userId,request)
+            );
     }
 }
