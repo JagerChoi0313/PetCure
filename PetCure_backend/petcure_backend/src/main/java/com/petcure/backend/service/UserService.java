@@ -338,7 +338,7 @@ public class UserService {
         }
 
         //6.生成后端受控访问的路径
-        String avatarUrl = "api/files/"+metadata.getId()+"/content";
+        String avatarUrl = "/api/files/"+metadata.getId()+"/content";
 
         //重复保存同一头像时，不必再次更新用户记录
         if (!Objects.equals(user.getAvatar_url(),avatarUrl)){
