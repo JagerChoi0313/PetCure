@@ -1,6 +1,7 @@
 package com.petcure.backend.service;
 
 import com.petcure.backend.config.FileStorageProperties;
+import com.petcure.backend.duo.file.FileContent;
 import com.petcure.backend.duo.file.FileUploadResponse;
 import com.petcure.backend.entity.FileMetadata;
 import com.petcure.backend.exception.BusinessException;
@@ -26,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 
@@ -363,6 +365,80 @@ public class FileStorageService {
                     &&Files.isReadable(actualPath);     //isReadable()检查程序能否读取。解析实际路径后再次检查所属目录，可以避免通过目录链接跳到存储根目录之外。
         }catch (IOException | InvalidPathException exception){
             return false;
+        }
+    }
+
+    private BusinessException avatarContentUnavailable(){
+        return new BusinessException(
+                HttpStatus.NOT_FOUND,
+                "AVATAR_CONTENT_UNAVAILABLE",
+                "头像文件不可访问"
+        );
+    }
+
+    //Service的读取方法
+    public FileContent readAvatar(Long userId,Long fileId){
+        if(fileId == null || fileId <= 0){
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_FILE_ID",
+                    "文件ID必须为整数"
+            );
+        }
+
+        FileMetadata metadata =
+                fileMetadataMapper.selectCurrentAvatarForRead(
+                        fileId,
+                        userId
+                );
+
+        if (metadata == null){
+            throw avatarContentUnavailable();
+        }
+
+        String mimeType = metadata.getMime_type();
+
+        boolean supportedType =
+                "image/jpeg".equals(mimeType)
+                        || "image/png".equals(mimeType)
+                        || "image/webp".equals(mimeType);
+
+        if (!supportedType
+                || !isAvatarFileAvailable(metadata.getStorage_key())){
+            throw avatarContentUnavailable();
+        }
+
+        try{
+            Path actualPath = rootDir
+                    .resolve(metadata.getStorage_key())
+                    .normalize()
+                    .toRealPath();
+
+            if (!actualPath.startsWith(rootDir)){
+                throw avatarContentUnavailable();
+            }
+
+            byte[] content;
+
+            try(InputStream input = Files.newInputStream(actualPath)){
+                content = input.readNBytes(
+                        (int) MAX_AVATAR_SIZE + 1
+                );
+            }
+
+            if (content.length == 0
+                     || content.length>MAX_AVATAR_SIZE
+                     || !Objects.equals(
+                                metadata.getSize_bytes(),
+                                (long)content.length
+            )){
+                throw avatarContentUnavailable();
+            }
+
+            return new FileContent(content,mimeType);
+        }catch (IOException|InvalidPathException exception){
+            log.warn("读取头像文件失败,fileId={}",fileId,exception);
+            throw avatarContentUnavailable();
         }
     }
 }
