@@ -21,10 +21,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Objects;
@@ -440,6 +437,42 @@ public class FileStorageService {
             log.warn("读取头像文件失败,fileId={}",fileId,exception);
             throw avatarContentUnavailable();
         }
+    }
+
+    //添加磁盘文件删除方法
+    //这个方法只负责磁盘操作。
+    public void deleteAvatarService(String storageKey) throws  IOException{
+        if (storageKey==null || !storageKey.startsWith("avatars/")){
+            throw new IOException("头像纯属标识无效");
+        }
+
+        Path target = rootDir.resolve(storageKey).normalize();
+
+        if (!target.startsWith(rootDir) || target.equals(rootDir)){
+            throw new IOException("不允许清理存储根目录之外的文件");
+        }
+
+        Path actualParent;
+
+        try{
+            actualParent=target.getParent().toRealPath();
+        }catch (NoSuchFileException exception){
+            //父目录已不存在，目标文件也已经不存在
+            return;
+        }
+
+        if (!actualParent.startsWith(rootDir)){
+            throw new IOException("文件父目录位于存储根目录之外");
+        }
+
+        Path checkedTarget = actualParent.resolve(target.getFileName());
+
+        if (Files.isDirectory(checkedTarget,LinkOption.NOFOLLOW_LINKS)){
+            throw new IOException("预期清理文件，但目标是目录");
+        }
+
+        //已经不存在的文件，也视为完成磁盘清理
+        Files.deleteIfExists(checkedTarget);
     }
 }
 
