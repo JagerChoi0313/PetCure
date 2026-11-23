@@ -399,4 +399,57 @@ public class UserService {
             return null;
         }
     }
+
+    //添加旧文件的标记方法
+    private void markOldAvatarForCleanup(
+            Long userId,
+            String oldAvatarUrl,
+            Long newFileId
+    ){
+        Long oldFileId = extractAvatarFileId(oldAvatarUrl);
+
+        //没有旧头像，或重复保存同一头像，无需处理
+        if (oldFileId == null || oldFileId.equals(newFileId)){
+            return;
+        }
+
+        //锁定属于当前用户的旧文件
+        FileMetadata oldFile =
+                fileMetadataMapper.selectOwnedFileForUpdate(
+                        oldFileId,
+                        userId
+                );
+
+        if (oldFile == null
+                || !Objects.equals(oldFile.getStatus(),1)
+                || oldFile.getStorage_key() == null
+                || !oldFile.getStorage_key().startsWith("avatars/")){
+
+                return;
+        }
+
+        //仍然存在用户头像引用时，保留文件
+        if (fileMetadataMapper.counterUserAvatarReferences(oldFileId)>0){
+            return;
+        }
+
+        //没有引用，标记为清理
+        int updatedRows = fileMetadataMapper.update(
+                null,
+                new LambdaUpdateWrapper<FileMetadata>()
+                        .eq(FileMetadata::getId,oldFileId)
+                        .eq(FileMetadata::getUser_id,userId)
+                        .eq(FileMetadata::getStatus,1)
+                        .eq(FileMetadata::getStatus,2)
+        );
+
+        if (updatedRows!=1){
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "AVATAR_UPDATE_CONFLICT",
+                    "旧头像状态发生变化，请重试"
+            );//这里继续使用已有的锁定查询，确保判断和修改旧文件期间，它不会被另一个1遵循相同锁定规则的操作同时修改
+        }
+    }
+
 }
