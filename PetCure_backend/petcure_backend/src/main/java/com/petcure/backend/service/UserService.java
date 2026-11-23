@@ -370,4 +370,33 @@ public class UserService {
         );
     }
 
+
+    //添加头像地址提取文件ID的方法1
+
+    //例如：/api/files/content -> 1
+    //没有旧头像、路径格式不符合规定或编号无效时，返回null，跳过旧文件处理
+    private Long extractAvatarFileId(String avatarUrl){
+        String prefix = "/api/files/";
+        String suffix = "/content";
+
+        if (avatarUrl == null
+                || !avatarUrl.startsWith(prefix)
+                || !avatarUrl.endsWith(suffix)
+                || avatarUrl.length() <= prefix.length() + suffix.length()
+        ){
+            return null;
+        }
+
+        String idText = avatarUrl.substring(
+                prefix.length(),
+                avatarUrl.length() - suffix.length()
+        );
+
+        try{
+            Long fileId = Long.valueOf(idText);
+            return fileId > 0? fileId:null;
+        }catch (NumberFormatException exception){
+            return null;
+        }
+    }
 }
