@@ -6,6 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 
 //这个Mapper操作的是FileMetadata对应的表
 //虽然接口内部没有手写方法，但已经继承了常用操作：insert(...),selectById(...),selectCount(...)
@@ -66,4 +68,64 @@ public interface FileMetadataMapper extends BaseMapper<FileMetadata> {
     long counterUserAvatarReferences(@Param("fileId")long fileId);
     //它检查这个文件地址是否仍然出现在用户的avatar_url中
     //目前项目只有用户头像引用文件，因此先检查USER表。以后接入宠物头像或附件时，需要把对应的引用检查一起扩展
+
+
+
+    //添加清理候选查询
+
+    //每轮最多选择100条头像文件记录
+    //这个方法负责找候选ID
+    @Select("""
+            SELECT id
+            FROM `file`
+            WHERE storage_key LIKE 'avatars/%'
+                AND (
+                    status = 2
+                    OR(
+                        status = 0
+                        AND created_at < UTC_TIMESTAMP()-INTERVAL 24 HOUR
+                    )
+                )
+                ORDER BY id
+                LIMIT 100
+            """)
+    List<Long>selectAvatarCleanupCandidates();
+
+
+
+
+
+    //真正处理之前，再次检查条件并锁定记录
+    //第二个方法在事务中重新确认状态，因为扫描之后处理之前，文件可能已经被用户关联
+    @Select("""
+            SELECT *
+            FROM `file`
+            WHERE id = #{fileId}
+                AND storage_key LIKE 'avatars/%'
+                AND (
+                    status = 2
+                    OR(
+                    status = 0
+                    AND created_at < UTC_TIMESTAMP() - INTERVAL 24 HOUR
+               )
+                )
+            """)
+    FileMetadata selectAvatarCleanupCandidateForUpdate(
+            @Param("fileId")Long fileId
+    );
+
+    //第一次查到的结果，只能代表查询当时的状态。等程序开始处理某个文件时，它的状态可能已经变了
+    //例如文件2是一个超过24小时的临时文件：
+    //清理任务扫描，得到候选ID：[1, 2, 3]，此时文件2的 status = 0
+    //用户刚好将文件2设置为头像， 文件2的 status 变成1
+    //清理任务开始处理文件2，执行第二个查询，status = 1，不再满足清理条件，查询返回null，跳过这个文件
+
+    //也就是说如果只根据第一次得到的ID直接删除，就可能把用户刚设置好的头像删掉。
+    //第二个查询为什么要加锁
+    //重新检查条件后，到实际删除之间，也存在时间间隔。
+    //FOR UPDATE 会在事务中锁定这条文件记录，让其他需要修改它的事务等待，直到本次事务提交或回滚。这样可以将：
+    //重新检查文件状态->检查是否还有头像引用->删除磁盘文件->删除数据库记录
+    //放在受锁保护的处理过程中。我们设置头像时也使用文件锁，因此两种操作会协调执行。
+    //而且第二个需要取得 storage_key，才能找到磁盘文件，还需要其他元数据
+
 }
