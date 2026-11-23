@@ -450,7 +450,7 @@ public class UserService {
                         .eq(FileMetadata::getId,oldFileId)
                         .eq(FileMetadata::getUser_id,userId)
                         .eq(FileMetadata::getStatus,1)
-                        .eq(FileMetadata::getStatus,2)
+                        .set(FileMetadata::getStatus,2)
         );
 
         if (updatedRows!=1){

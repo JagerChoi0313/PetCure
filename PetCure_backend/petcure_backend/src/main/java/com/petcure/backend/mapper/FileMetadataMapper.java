@@ -60,7 +60,7 @@ public interface FileMetadataMapper extends BaseMapper<FileMetadata> {
     @Select("""
             SELECT COUNT(*)
             FROM `USER`
-            WHERE avatar_url = CONCAT(`/api/files/`,#{fileId},`/content`)
+            WHERE avatar_url = CONCAT('/api/files/',#{fileId},'/content')
             """)
 
     long counterUserAvatarReferences(@Param("fileId")long fileId);
