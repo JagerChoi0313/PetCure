@@ -49,4 +49,21 @@ public interface FileMetadataMapper extends BaseMapper<FileMetadata> {
     );
 
     //它负责查询“属于当前用户，而且仍然被用作当前头像”的文件
+
+
+
+    //添加引用数量查询
+    //用于处理更换头像后的旧文件状态：
+    //绑定新头像->检查旧文件是否还有用户头像引用->没有引用：标记为2->下一步由定时任务删除
+    //这一轮会完成Mapper查询、旧文件标记和现有保存方法接入
+
+    @Select("""
+            SELECT COUNT(*)
+            FROM `USER`
+            WHERE avatar_url = CONCAT(`/api/files/`,#{fileId},`/content`)
+            """)
+
+    long counterUserAvatarReferences(@Param("fileId")long fileId);
+    //它检查这个文件地址是否仍然出现在用户的avatar_url中
+    //目前项目只有用户头像引用文件，因此先检查USER表。以后接入宠物头像或附件时，需要把对应的引用检查一起扩展
 }
