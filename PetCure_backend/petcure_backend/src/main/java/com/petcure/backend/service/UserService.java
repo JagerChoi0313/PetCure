@@ -287,6 +287,9 @@ public class UserService {
                 );
             }
 
+            //保存修改前的头像地址
+            String oldAvatarUrl = user.getAvatar_url();
+
             //2.查询并锁定属于当前用户的文件
         FileMetadata metadata =
                 fileMetadataMapper.selectOwnedFileForUpdate(
@@ -358,6 +361,13 @@ public class UserService {
             }
         }
 
+        //新头像已经保存，再检查旧头像是否需要回收
+        markOldAvatarForCleanup(
+                userId,
+                oldAvatarUrl,
+                metadata.getId()
+        );
+
         //7,返回后更新个人资料
         return getCurrentUser(userId);
     }
@@ -371,7 +381,7 @@ public class UserService {
     }
 
 
-    //添加头像地址提取文件ID的方法1
+    //添加头像地址提取文件ID的方法
 
     //例如：/api/files/content -> 1
     //没有旧头像、路径格式不符合规定或编号无效时，返回null，跳过旧文件处理
@@ -451,5 +461,11 @@ public class UserService {
             );//这里继续使用已有的锁定查询，确保判断和修改旧文件期间，它不会被另一个1遵循相同锁定规则的操作同时修改
         }
     }
+    //这一步完成之后的效果：
+    //假设从头像文件1换成头像文件2
+    //数据:USER.avatar_url更新后的状态变为/api/files/2/content
+    //文件2   status = 1,已关联
+    //文件1   status = 2,代清理
+    //这些数据库操作都在现有的updateCurrentUserAvatar()的事物中完成，任何一步抛出异常，整个事物回滚，不会只保留其中一部分
 
 }
