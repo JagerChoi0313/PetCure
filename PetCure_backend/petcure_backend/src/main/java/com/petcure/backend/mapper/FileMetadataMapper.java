@@ -109,6 +109,7 @@ public interface FileMetadataMapper extends BaseMapper<FileMetadata> {
                     AND created_at < UTC_TIMESTAMP() - INTERVAL 24 HOUR
                )
                 )
+                FOR UPDATE
             """)
     FileMetadata selectAvatarCleanupCandidateForUpdate(
             @Param("fileId")Long fileId

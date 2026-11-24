@@ -35,7 +35,7 @@ public class FileCleanupJob {
     }
 
     //启动一分钟后执行，每轮结束后等待一分钟再执行
-    @Scheduled(initialDelay = 60_000,fixedDelay = 60_0000)
+    @Scheduled(initialDelay = 60_000,fixedDelay = 60_000)
     public void cleanupAvatars(){
         List<Long> fileIds =
                 fileMetadataMapper.selectAvatarCleanupCandidates();
