@@ -441,7 +441,7 @@ public class FileStorageService {
 
     //添加磁盘文件删除方法
     //这个方法只负责磁盘操作。
-    public void deleteAvatarService(String storageKey) throws  IOException{
+    public void deleteAvatarFile(String storageKey) throws  IOException{
         if (storageKey==null || !storageKey.startsWith("avatars/")){
             throw new IOException("头像纯属标识无效");
         }
