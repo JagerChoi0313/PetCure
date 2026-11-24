@@ -1,5 +1,6 @@
 import AuthLayout from './AuthLayout'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import PersonalCenter from './PersonalCenter'
 import RegisterForm from './RegisterForm'
 import {
   ApiError,
@@ -23,6 +24,16 @@ export default function App() {
   const [restoring, setRestoring] = useState(() => Boolean(getToken()))
   const [restoreFailed, setRestoreFailed] = useState(false)
   const [restoreAttempt, setRestoreAttempt] = useState(0)
+
+  const handleSessionEnded = useCallback((notice: string) => {
+    clearToken()
+    setUser(null)
+    setPassword('')
+    setShowRegister(false)
+    setRestoreFailed(false)
+    setRestoring(false)
+    setMessage(notice)
+  }, [])
 
   // 页面加载后，用保存的令牌查询当前用户。
   useEffect(() => {
@@ -73,6 +84,7 @@ export default function App() {
       saveToken(login.accessToken)
       setUser(profile)
       setPassword('')
+      setMessage('')
     } catch (error) {
       setMessage(getErrorMessage(error))
     } finally {
@@ -139,19 +151,9 @@ export default function App() {
 
   if (user) {
     return (
-      <main>
-        <h1>PetCure</h1>
-        <p>欢迎，{user.nickname || user.username}</p>
-        <p>账号：{user.username}</p>
-        <button
-          type="button"
-          onClick={handleLogout}
-          disabled={submitting}
-        >
-          {submitting ? '退出中…' : '退出登录'}
-        </button>
-        <p role="status">{message}</p>
-      </main>
+      <PersonalCenter key={user.id} user={user} onUserChange={setUser}
+        onSessionEnded={handleSessionEnded} onLogout={handleLogout}
+        loggingOut={submitting} logoutMessage={message} />
     )
   }
 
