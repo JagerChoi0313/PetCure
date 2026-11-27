@@ -6,10 +6,12 @@ import lombok.AllArgsConstructor;
 //Java中，final修饰的成员变量必须在对象构造完成之前被初始化，并且初始化后不能再被赋值
 import lombok.Getter;
 
+import java.time.LocalDate;
+
 @Getter
 @AllArgsConstructor
 public class PetResponse {
-    private String id;//返回宠物id
+    private final Long id;//返回宠物id
 
     private final String name;//返回宠物名字
 
@@ -19,15 +21,15 @@ public class PetResponse {
 
     private final Integer sex;//返回宠物性别
 
-    private final String birthday;//返回宠物生日
+    private final LocalDate birthday;//返回宠物生日
 
-    private final String birthday_estimated;//返回估算生日
+    private final Integer birthdayEstimated;//返回估算生日
 
-    private final String avatar_url;//返回宠物头像
+    private final String avatarUrl;//返回宠物头像
 
     private final String color;
 
-    private final String neutered_status;
+    private final Integer neuteredStatus;
 
 
 }
