@@ -50,6 +50,7 @@ public class PetService {
 
         //把查到的每只pet都转化为Response
         //遍历pets，每次取出一只Pet，用它的getter创建一个PetResponse，加入结果列表
+        //for 循环，其实就是把 UserService 里“取出实体字段、组装成响应对象”的过程，对每一只查到的宠物做一次
         for (Pet pet : pets) {
             PetResponse response = new PetResponse(
                     pet.getId(),
